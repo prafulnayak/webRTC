@@ -2,8 +2,8 @@ const userName = "Praful-"+Math.floor(Math.random() * 100000);
 const password = "x";
 document.querySelector('#user-name').innerHTML = userName;
 
-let didIOffer = false;
-const socket = io.connect('https://192.168.84.104:8181/', { //localhost
+
+const socket = io.connect('https://192.168.158.104:8181/', { //localhost
     auth: {
         userName, password
     }
@@ -15,6 +15,8 @@ const remoteVideoEl = document.querySelector('#remote-video');
 let localStream;
 let remoteStream;
 let peerConnection;
+let didIOffer = false;
+
 
 let peerConfiguration = {
     iceServers:[
@@ -48,7 +50,7 @@ const call = async e => {
 }
 
 const answerOffer = async(offerObj)=>{
-    await fetchUserMedia()
+    await fetchUserMediaBack()
     // peer connection is all set with out STUN servers sent over
     await createPeerConnection(offerObj);
     const answer = await peerConnection.createAnswer({}); // doc hgappy
@@ -97,8 +99,47 @@ const fetchUserMedia = () => {
     })
 }
 
+const fetchUserMediaBack = () => {
+    return new Promise(async (resolve, reject)=>{
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const videoDevices = devices.filter(device => device.kind === 'videoinput');
+            let backCameraDeviceId = null;
+
+            // Look for a device labeled as 'back' or 'rear'
+            for (let device of videoDevices) {
+                if (device.label.toLowerCase().includes('back') || device.label.toLowerCase().includes('rear')) {
+                    backCameraDeviceId = device.deviceId;
+                    break;
+                }
+            }
+
+            // If no back camera is found, use the first video device
+            if (!backCameraDeviceId && videoDevices.length > 0) {
+                backCameraDeviceId = videoDevices[0].deviceId;
+            }
+
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    deviceId: backCameraDeviceId ? { exact: backCameraDeviceId } : undefined
+                },
+                // audio: true
+            });
+            localVideoEl.srcObject = stream;
+            localStream = stream;
+            resolve();
+        }catch(err){
+            console.log(err);
+            reject();
+        }
+    })
+}
+
 const createPeerConnection = (offerObj) => {
   return new Promise(async (resolve, reject) => {
+    // rtc peer connection is a constructor that creates a new RTCPeerConnection
+    // object. This object represents a WebRTC connection between the local
+    // computer and a remote peer.
     peerConnection = await new RTCPeerConnection(peerConfiguration);
 
     remoteStream = new MediaStream()
