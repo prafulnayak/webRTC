@@ -3,7 +3,7 @@ const password = "x";
 document.querySelector('#user-name').innerHTML = userName;
 
 let didIOffer = false;
-const socket = io.connect('https://192.168.84.104:8181/', { //localhost
+const socket = io.connect('https://localhost:8181/', { //localhost
     auth: {
         userName, password
     }
